@@ -1,0 +1,58 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const int soundPin = A0;
+const int stepSize = 3; // Horizontal space between wave points
+const int waveWidth = SCREEN_WIDTH / stepSize;
+int waveform[waveWidth];
+
+void setup() {
+  Serial.begin(9600);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("OLED init failed"));
+    while (1);
+  }
+
+  display.clearDisplay();
+  display.setTextColor(WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(F("Sound Waves"));
+  display.display();
+  delay(1000);
+}
+
+void loop() {
+  // Shift old values left
+  for (int i = 0; i < waveWidth - 1; i++) {
+    waveform[i] = waveform[i + 1];
+  }
+
+  // Read new value
+  int raw = analogRead(soundPin);
+  int centerY = SCREEN_HEIGHT / 2;
+
+  // Dynamically amplify based on sound level
+  int dynamicAmp = map(raw, 0, 1023, 2, SCREEN_HEIGHT / 2);
+  int waveY = centerY + sin(millis() / 50.0) * dynamicAmp;
+  waveform[waveWidth - 1] = waveY;
+
+  // Draw waveform
+  display.clearDisplay();
+  for (int i = 1; i < waveWidth; i++) {
+    int x1 = (i - 1) * stepSize;
+    int x2 = i * stepSize;
+    display.drawLine(x1, waveform[i - 1], x2, waveform[i], WHITE);
+  }
+
+  display.display();
+  delay(20);
+}
