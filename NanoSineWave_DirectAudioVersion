@@ -1,0 +1,53 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Pins
+#define AUDIO_PIN A0
+
+float phase = 0.0;
+float phaseSpeed = 0.1;
+
+void setup() {
+  Serial.begin(9600);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+
+  display.clearDisplay();
+  display.display();
+}
+
+void loop() {
+  display.clearDisplay();
+
+  int audioRaw = analogRead(AUDIO_PIN);
+  float amplitude = map(audioRaw, 0, 1023, 8, 28); 
+
+  int lastY = SCREEN_HEIGHT / 2;
+
+  for (float x = 0; x < SCREEN_WIDTH; x += 0.5) {
+    float radians = (x + phase) * 0.15;
+    int y = SCREEN_HEIGHT / 2 + sin(radians) * amplitude;
+
+    display.drawLine(x - 0.5, lastY, x, y, WHITE);
+    lastY = y;
+  }
+
+  display.display();
+
+  phase += phaseSpeed;
+  if (phase > 2 * PI * SCREEN_WIDTH) {
+    phase = 0;
+  }
+
+  delay(15);
+}
